@@ -1,0 +1,16 @@
+<div style="display: flex; height: 100vh;">
+  <div style="width: 25%; padding: 20px; background: #f4f4f4;">
+    <h2>UKC Simulator</h2>
+
+    <label>Tide Level: {{ tide }}m</label>
+    <input type="range" [(ngModel)]="tide" min="-2.0" max="5.0" step="0.1" style="width: 100%;">
+
+    <label>Vessel Speed: {{ speed }} knots</label>
+    <input type="range" [(ngModel)]="speed" min="0" max="15" step="0.5" style="width: 100%;">
+
+    <label>Safety Margin: {{ safetyThreshold }}m</label>
+    <input type="range" [(ngModel)]="safetyThreshold" min="0.5" max="3.0" step="0.1" style="width: 100%;">
+  </div>
+
+  <div #rendererContainer style="width: 75%; height: 100%;"></div>
+</div>
