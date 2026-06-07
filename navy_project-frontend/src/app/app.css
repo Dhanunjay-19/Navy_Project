@@ -1,0 +1,103 @@
+:host {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.control-panel {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 330px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.control-panel h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.subtitle {
+  margin: 4px 0 16px;
+  color: #555;
+  font-size: 13px;
+}
+
+.label,
+.control-panel label {
+  display: block;
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.control-panel input[type='range'] {
+  width: 100%;
+}
+
+.status {
+  margin-top: 12px;
+  padding: 8px;
+  border-radius: 6px;
+  background: #eef6ff;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.legend {
+  margin-top: 14px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.safe,
+.danger {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.safe { background: blue; }
+.danger { background: red; }
+
+.renderer-container {
+  width: 100vw;
+  height: 100vh;
+}
+
+.control-panel h3 {
+  margin: 10px 0 8px;
+  font-size: 16px;
+}
+
+.control-panel button {
+  margin: 4px 6px 8px 0;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: #0d6efd;
+  color: white;
+  cursor: pointer;
+}
+
+.metrics {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #e9f8ee;
+  font-size: 13px;
+  line-height: 1.5;
+  border-left: 4px solid #198754;
+}
+
+.danger-box {
+  background: #fff0f0;
+  border-left-color: #dc3545;
+}
