@@ -1,11 +1,18 @@
 <div class="control-panel">
   <h2>Marine Digital Twin</h2>
-  <p class="subtitle">3D Bathymetry + Under-Keel Clearance simulator</p>
+  <p class="subtitle">3D Bathymetry + Route-Based UKC simulator</p>
 
   <label class="label">1. Upload Survey Data (.xyz / .txt)</label>
   <input type="file" (change)="onFileSelected($event)" accept=".xyz,.txt,.csv" />
 
   <div class="status">{{ statusMessage }}</div>
+
+  <div class="survey-summary" *ngIf="totalSurveyPoints > 0">
+    <b>Uploaded Survey Coordinates</b><br />
+    Points: {{ totalSurveyPoints }}<br />
+    X range: {{ originalMinX | number:'1.2-2' }} to {{ originalMaxX | number:'1.2-2' }}<br />
+    Y range: {{ originalMinY | number:'1.2-2' }} to {{ originalMaxY | number:'1.2-2' }}
+  </div>
 
   <hr />
 
@@ -23,26 +30,60 @@
 
   <hr />
 
-  <h3>Ship Navigation</h3>
-  <button type="button" (click)="toggleShipMovement()">
-    {{ isShipMoving ? 'Pause Ship' : 'Start Ship' }}
-  </button>
-  <button type="button" (click)="resetShipPosition()">Reset Ship</button>
+  <h3>Route Planner</h3>
+  <div class="waypoint-form">
+    <label>Survey X</label>
+    <input type="number" [(ngModel)]="newWaypointSurveyX" />
+    <label>Survey Y</label>
+    <input type="number" [(ngModel)]="newWaypointSurveyY" />
+    <button type="button" (click)="addWaypoint()">Add Waypoint</button>
+  </div>
 
-  <label>Simulation Speed: <b>{{ simulationMultiplier }}x</b></label>
-  <input type="range" [(ngModel)]="simulationMultiplier" min="1" max="50" step="1" />
+  <button type="button" (click)="resetDefaultRoute()">Reset Default Route</button>
 
-  <div class="metrics" [class.danger-box]="currentUkc < safetyThreshold">
-    <b>Real-Time UKC</b><br />
-    Depth under ship: {{ currentDepth | number:'1.2-2' }} m<br />
-    Squat: {{ currentSquat | number:'1.2-2' }} m<br />
-    UKC: {{ currentUkc | number:'1.2-2' }} m<br />
-    Status: <b>{{ ukcStatus }}</b>
+  <div class="waypoint-list">
+    <div class="waypoint-row" *ngFor="let waypoint of routeWaypoints; let i = index">
+      <span>{{ i + 1 }}. {{ waypoint.name }} (Survey X: {{ waypoint.surveyX | number:'1.2-2' }}, Y: {{ waypoint.surveyY | number:'1.2-2' }})</span>
+      <button type="button" class="small-btn" (click)="removeWaypoint(i)">Remove</button>
+    </div>
+  </div>
+
+  <div class="route-summary" [class.danger-box]="minRouteUkc < safetyThreshold">
+    <b>Route Risk</b><br />
+    Route distance: {{ routeTotalDistance | number:'1.0-0' }} m<br />
+    Progress: {{ routeProgressPercent | number:'1.0-0' }}%<br />
+    Minimum route UKC: {{ minRouteUkc | number:'1.2-2' }} m<br />
+    Route status: <b>{{ routeRiskStatus }}</b>
+  </div>
+
+  <div class="ship-navigation-card">
+    <h3>Ship Navigation</h3>
+    <div class="ship-button-row">
+      <button type="button" class="primary-action" (click)="toggleShipMovement()">
+        {{ isShipMoving ? 'Pause Ship' : 'Start Ship' }}
+      </button>
+      <button type="button" (click)="resetShipPosition()">Reset Ship</button>
+    </div>
+
+    <label>Simulation Speed: <b>{{ simulationMultiplier }}x</b></label>
+    <input type="range" [(ngModel)]="simulationMultiplier" min="1" max="50" step="1" />
+
+    <div class="metrics" [class.danger-box]="currentUkc < safetyThreshold">
+      <b>Real-Time UKC</b><br />
+      Next waypoint: {{ currentWaypointIndex + 1 }} / {{ routeWaypoints.length }}<br />
+      Ship Survey X: {{ currentShipSurveyX | number:'1.2-2' }}<br />
+      Ship Survey Y: {{ currentShipSurveyY | number:'1.2-2' }}<br />
+      Depth under ship: {{ currentDepth | number:'1.2-2' }} m<br />
+      Squat: {{ currentSquat | number:'1.2-2' }} m<br />
+      UKC: {{ currentUkc | number:'1.2-2' }} m<br />
+      Status: <b>{{ ukcStatus }}</b>
+    </div>
   </div>
 
   <div class="legend">
     <span class="safe"></span> Safe seabed clearance<br />
-    <span class="danger"></span> Low / unsafe UKC area
+    <span class="danger"></span> Low / unsafe UKC area<br />
+    <span class="route-dot"></span> Planned route
   </div>
 </div>
 

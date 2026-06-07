@@ -6,79 +6,83 @@
   font-family: Arial, Helvetica, sans-serif;
 }
 
+.renderer-container {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 1;
+}
+
 .control-panel {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  width: 330px;
-  padding: 16px;
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  width: 350px;
+  max-height: calc(100vh - 16px);
+  padding: 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
   z-index: 10;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .control-panel h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: 20px;
 }
 
 .subtitle {
-  margin: 4px 0 16px;
+  margin: 3px 0 10px;
   color: #555;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .label,
 .control-panel label {
   display: block;
-  margin-top: 12px;
-  font-size: 14px;
+  margin-top: 8px;
+  font-size: 13px;
 }
 
 .control-panel input[type='range'] {
   width: 100%;
 }
 
+.control-panel hr {
+  margin: 10px 0;
+}
+
 .status {
-  margin-top: 12px;
+  margin-top: 8px;
   padding: 8px;
   border-radius: 6px;
   background: #eef6ff;
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.survey-summary {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: #fff8e6;
+  font-size: 12px;
   line-height: 1.35;
-}
-
-.legend {
-  margin-top: 14px;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.safe,
-.danger {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  margin-right: 6px;
-}
-
-.safe { background: blue; }
-.danger { background: red; }
-
-.renderer-container {
-  width: 100vw;
-  height: 100vh;
+  border-left: 4px solid #ffc107;
 }
 
 .control-panel h3 {
-  margin: 10px 0 8px;
-  font-size: 16px;
+  margin: 8px 0 6px;
+  font-size: 15px;
 }
 
 .control-panel button {
-  margin: 4px 6px 8px 0;
+  margin: 3px 5px 6px 0;
   padding: 7px 10px;
   border: 0;
   border-radius: 6px;
@@ -87,17 +91,128 @@
   cursor: pointer;
 }
 
+.primary-action {
+  background: #198754 !important;
+  font-weight: 700;
+}
+
+.waypoint-form {
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  gap: 5px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.waypoint-form button {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.waypoint-form input[type='number'] {
+  width: 100%;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+.waypoint-list {
+  max-height: 86px;
+  overflow-y: auto;
+  margin-top: 6px;
+  padding-right: 4px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+}
+
+.waypoint-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  align-items: center;
+  padding: 5px;
+  border-bottom: 1px solid #e6e6e6;
+  font-size: 11px;
+}
+
+.small-btn {
+  padding: 4px 6px !important;
+  font-size: 10px;
+  background: #6c757d !important;
+}
+
+.route-summary {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: #f5fff2;
+  font-size: 12px;
+  line-height: 1.4;
+  border-left: 4px solid #20c997;
+}
+
+.ship-navigation-card {
+  position: sticky;
+  bottom: 0;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #dbe7ff;
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.12);
+  z-index: 20;
+}
+
+.ship-button-row {
+  display: flex;
+  gap: 6px;
+}
+
+.ship-button-row button {
+  flex: 1;
+  margin-right: 0;
+}
+
 .metrics {
-  margin-top: 10px;
-  padding: 10px;
+  margin-top: 8px;
+  padding: 8px;
   border-radius: 8px;
   background: #e9f8ee;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.35;
   border-left: 4px solid #198754;
 }
 
 .danger-box {
   background: #fff0f0;
   border-left-color: #dc3545;
+}
+
+.legend {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.safe,
+.danger {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.safe { background: blue; }
+.danger { background: red; }
+
+.route-dot {
+  display: inline-block;
+  width: 22px;
+  height: 4px;
+  border-radius: 4px;
+  margin-right: 6px;
+  background: #00aa00;
+  vertical-align: middle;
 }
