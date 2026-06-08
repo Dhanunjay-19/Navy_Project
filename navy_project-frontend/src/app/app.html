@@ -9,8 +9,6 @@
 
   <hr />
 
-  
-
   <label>Tide Level: <b>{{ tide | number:'1.1-1' }} m</b></label>
   <input type="range" [(ngModel)]="tide" min="0.0" max="5.0" step="0.1" />
 
@@ -26,6 +24,13 @@
   <hr />
 
   <h3>Ship Navigation</h3>
+  
+  <button type="button" (click)="toggleCourseEditMode()">
+    {{ isEditingCourse ? '🛑 Finish Plotting' : '📍 Plot Custom Route' }}
+  </button>
+  <button type="button" (click)="clearCourse()">🗑️ Clear Route</button>
+  <br><br>
+
   <button type="button" (click)="toggleShipMovement()">
     {{ isShipMoving ? 'Pause Ship' : 'Start Ship' }}
   </button>

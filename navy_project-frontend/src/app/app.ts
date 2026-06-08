@@ -62,6 +62,16 @@ export class App implements OnInit {
   mapShallowest: number = 0;
   mapDeepest: number = -20;
 
+  // Course Navigation Variables
+  courseWaypoints: THREE.Vector3[] = [];
+  currentWaypointIndex: number = 0;
+  courseLineMesh?: THREE.Line;
+
+  // NEW: Manual Plotting Variables
+  isEditingCourse: boolean = false;
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
     private http: HttpClient
@@ -105,7 +115,60 @@ export class App implements OnInit {
     this.controls.maxDistance = 2000;  
     //this.controls.maxPolarAngle = Math.PI / 2 - 0.05; 
 
+    // Listen for mouse clicks on the 3D canvas
+    this.renderer.domElement.addEventListener('pointerdown', (event) => this.onMapClick(event));
+
     window.addEventListener('resize', () => this.onWindowResize());
+  }
+
+  toggleCourseEditMode() {
+    this.isEditingCourse = !this.isEditingCourse;
+    
+    // Disable map rotation while plotting so we don't accidentally drag the map!
+    if (this.controls) {
+      this.controls.enableRotate = !this.isEditingCourse;
+    }
+  }
+
+  clearCourse() {
+    this.courseWaypoints = [];
+    if (this.courseLineMesh) {
+      this.worldGroup.remove(this.courseLineMesh);
+      this.courseLineMesh = undefined;
+    }
+    this.isShipMoving = false; // Stop the ship if route is cleared
+  }
+
+  onMapClick(event: PointerEvent) {
+    if (!this.isEditingCourse || !this.waterMesh) return;
+    if (event.button !== 0) return; // Only trigger on Left Click
+
+    // 1. Calculate mouse position in normalized device coordinates (-1 to +1)
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    // 2. Shoot the Raycaster from the camera to the mouse
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+
+    // 3. Check if the laser hit the water surface
+    const intersects = this.raycaster.intersectObject(this.waterMesh);
+
+    if (intersects.length > 0) {
+      
+      // --- THE FIX ---
+      // Get the Global Universe hit point
+      const hitPoint = intersects[0].point.clone();
+      
+      // Convert it to match the miniature scale of our worldGroup!
+      this.worldGroup.worldToLocal(hitPoint);
+      
+      // Add the properly scaled point to our waypoints
+      this.courseWaypoints.push(new THREE.Vector3(hitPoint.x, this.tide + 0.5, hitPoint.z));
+      
+      // Redraw the line!
+      this.drawCourse();
+    }
   }
 
   onWindowResize() {
@@ -185,13 +248,19 @@ export class App implements OnInit {
     let minY = Number.POSITIVE_INFINITY;
     let maxY = Number.NEGATIVE_INFINITY;
 
+    
+
     for (let i = 0; i < rawPoints.length; i++) {
       const p = rawPoints[i];
       if (p.x < minX) minX = p.x;
       if (p.x > maxX) maxX = p.x;
       if (p.y < minY) minY = p.y;
       if (p.y > maxY) maxY = p.y;
+
+      
     }
+
+   
 
     const realWidth = maxX - minX;
     const realLength = maxY - minY;
@@ -321,6 +390,7 @@ export class App implements OnInit {
     }
 
     this.statusMessage = `Rendered 3D channel: ${segmentsX} x ${segmentsY} grid.`;
+    this.drawCourse();
   }
 
   buildDynamicWater(width: number, length: number) {
@@ -339,7 +409,7 @@ export class App implements OnInit {
     this.worldGroup.add(this.waterMesh); // Add to Group!
   }
 
- buildShip() {
+buildShip() {
     this.shipMesh = new THREE.Group();
 
     // @ts-ignore
@@ -348,7 +418,7 @@ export class App implements OnInit {
     loader.load('/ship.glb', (gltf: any) => {
       const model = gltf.scene;
 
-      // 1. AUTO-SCALER
+      // 1. AUTO-SCALER (Your original)
       const boundingBox = new THREE.Box3().setFromObject(model);
       const size = new THREE.Vector3();
       boundingBox.getSize(size);
@@ -360,16 +430,12 @@ export class App implements OnInit {
       const scaleFactor = targetLength / originalLength;
       model.scale.set(scaleFactor, scaleFactor, scaleFactor);
 
-      // 2. ROTATION FIX
-      model.rotation.y = -Math.PI / 2; 
+      // 2. YOUR ORIGINAL ROTATION (Restored)
+      model.rotation.y = -Math.PI / 2 + Math.PI; 
 
-      // 3. THE PERFECT WATERLINE FIX
+      // 3. THE KEEL ANCHOR (This allows the Draft slider to work)
       const scaledBox = new THREE.Box3().setFromObject(model);
-      const modelHeight = scaledBox.max.y - scaledBox.min.y;
-      
-      // We lift the absolute bottom of the ship to 0, then drop it by 15% into the water.
-      // (No crazy *10 multiplication this time!)
-      model.position.y = Math.abs(scaledBox.min.y) - (modelHeight * 0.15); 
+      model.position.y = Math.abs(scaledBox.min.y); 
 
       // 4. MATERIAL FIX
       model.traverse((child: any) => {
@@ -390,9 +456,11 @@ export class App implements OnInit {
       this.shipMesh.add(model);
     });
 
-    // 5. UN-SQUISH THE SHIP
+    // 5. RESTORE YOUR ANTI-SQUASH! 
+    // This cancels out the 10x vertical stretch from the worldGroup
     const depthExaggeration = 10; 
     this.shipMesh.scale.set(1, 1 / depthExaggeration, 1);
+    
     this.worldGroup.add(this.shipMesh);
   }
 
@@ -413,26 +481,74 @@ export class App implements OnInit {
   }
 
   updateShipMovement(deltaSeconds: number) {
-    if (!this.isShipMoving || !this.shipMesh || !this.seabedGeometry) return;
+    if (!this.isShipMoving || !this.shipMesh || !this.seabedGeometry || this.courseWaypoints.length === 0) return;
+
+    const target = this.courseWaypoints[this.currentWaypointIndex];
+    const dx = target.x - this.shipMesh.position.x;
+    const dz = target.z - this.shipMesh.position.z;
+    const distanceToTarget = Math.sqrt(dx * dx + dz * dz);
+
+    if (distanceToTarget < 1.0) {
+      this.currentWaypointIndex++;
+      if (this.currentWaypointIndex >= this.courseWaypoints.length) {
+        this.currentWaypointIndex = 1;
+        this.shipMesh.position.x = this.courseWaypoints[0].x;
+        this.shipMesh.position.z = this.courseWaypoints[0].z;
+      }
+      return;
+    }
+
+    // Heading calculation
+    const targetHeading = Math.atan2(dx, dz);
+    
+    // Smoothly update rotation
+    this.shipMesh.rotation.y = targetHeading;
 
     const metresPerSecond = this.speed * 0.514444;
     const moveDistance = metresPerSecond * this.simulationMultiplier * deltaSeconds;
+    const actualMove = Math.min(moveDistance, distanceToTarget);
 
-    this.shipMesh.position.z += moveDistance;
+    // Movement
+    this.shipMesh.position.x += Math.sin(targetHeading) * actualMove;
+    this.shipMesh.position.z += Math.cos(targetHeading) * actualMove;
+  }
 
-    if (this.shipMesh.position.z > this.shipRouteEndZ) {
-      this.shipMesh.position.z = this.shipRouteStartZ;
+  drawCourse() {
+    if (this.courseLineMesh) {
+      this.worldGroup.remove(this.courseLineMesh);
+    }
+
+    if (this.courseWaypoints.length < 2) return;
+
+    const material = new THREE.LineDashedMaterial({ 
+      color: 0xffff00, linewidth: 2, dashSize: 5, gapSize: 3 
+    });
+    const geometry = new THREE.BufferGeometry().setFromPoints(this.courseWaypoints);
+    this.courseLineMesh = new THREE.Line(geometry, material);
+    this.courseLineMesh.computeLineDistances(); 
+    
+    this.worldGroup.add(this.courseLineMesh);
+
+    if (this.courseWaypoints.length === 2 && !this.isShipMoving) {
+      this.currentWaypointIndex = 1;
+      this.shipMesh.position.x = this.courseWaypoints[0].x;
+      this.shipMesh.position.z = this.courseWaypoints[0].z;
+      
+      // Calculate angle and apply rotation
+      const dx = this.courseWaypoints[1].x - this.courseWaypoints[0].x;
+      const dz = this.courseWaypoints[1].z - this.courseWaypoints[0].z;
+      
+      // Use lookAt or atan2. If the ship is backwards, change the rotation Y directly:
+      this.shipMesh.rotation.y = Math.atan2(dx, dz); 
     }
   }
 
   updateRealtimeUKC() {
-
-    
     if (!this.seabedGeometry || !this.shipMesh) return;
 
     const positions = this.seabedGeometry.attributes['position'].array;
 
-    // 1. The 150m Ship Footprint!
+    // 1. The 150m Ship Footprint Scanner
     const shipHalfWidth = 25; 
     const shipHalfLength = 85; 
     const shipX = this.shipMesh.position.x;
@@ -467,30 +583,39 @@ export class App implements OnInit {
       shallowestUnderShip = nearestSeabedY;
     }
 
-    // 2. Realistic Squat Math
+    // 2. Realistic Squat Math & Keel Calculation
     this.currentSquat = 0.01 * Math.pow(this.speed, 2);
     const keelY = this.tide - this.restingDraft - this.currentSquat;
 
-    if (this.waterMesh) {
-      this.waterMesh.position.y = this.tide;
-    }
+    // --- 3. THE PHYSICAL GROUNDING FIX ---
+    let visualKeelY = keelY; 
     
-    // 3. Pin the master container EXACTLY to the water line!
-    // (It sinks slightly based on squat physics)
-    this.shipMesh.position.y = this.tide - this.currentSquat;
+    // If the math says we are underground, force the visual 3D ship to rest ON top of the rocks!
+    if (keelY < shallowestUnderShip) {
+        visualKeelY = shallowestUnderShip; 
+    }
 
+    // Move the 3D ship to the calculated physical depth
+    this.shipMesh.position.y = visualKeelY;
+
+    // --- 4. THE WATER LAYER FIX ---
+    // Bring the water down to perfectly meet the ship's exact visual draft line
+    if (this.waterMesh) {
+      const depthExaggeration = 10; 
+      this.waterMesh.position.y = visualKeelY + (this.restingDraft / depthExaggeration);
+    }
+
+    // --- 5. THE COURSE NAVIGATION LINE FIX ---
+    // Keep the glowing path floating just above the water surface
+    if ((this as any).courseLineMesh) {
+      (this as any).courseLineMesh.position.y = (this.waterMesh ? this.waterMesh.position.y : this.tide) + 0.5;
+    }
+
+    // 6. Calculate Final UI Metrics
     this.currentDepth = this.tide - shallowestUnderShip;
     this.currentUkc = keelY - shallowestUnderShip;
 
-    console.log("====== UKC DEBUG ======");
-console.log("Tide:", this.tide);
-console.log("Draft:", this.restingDraft);
-console.log("Squat:", this.currentSquat);
-console.log("KeelY:", keelY);
-console.log("SeabedY:", shallowestUnderShip);
-console.log("Depth:", this.currentDepth);
-console.log("UKC:", this.currentUkc);
-
+    // 7. Update the Safety Status
     if (this.currentUkc < 0) {
       this.ukcStatus = 'GROUNDING / TOUCHING SEABED';
     } else if (this.currentUkc < this.safetyThreshold) {
