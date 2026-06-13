@@ -9,9 +9,13 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**")
-                .allowedOrigins("http://localhost:4200")
-                .allowedMethods("GET", "POST", "OPTIONS")
-                .allowedHeaders("*");
+        registry.addMapping("/**")
+                .allowedOrigins(
+                    "http://localhost:4200", // Allows your local Angular app to connect
+                    "https://your-frontend-name.onrender.com" // <-- CHANGE THIS TO YOUR RENDER FRONTEND URL LATER
+                )
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true);
     }
 }
